@@ -16,11 +16,11 @@ Code and associated files for database paper: "Documenting the spatiotemporal hi
 		   - *BHL_results_ofc.csv* - dataframe of assembled API results
 
 3. **BHL_cleaning.R**: Clean/append dataframe and create three separate database files.
-	  - ***Needed files***:
-		    - *BHL_results_ofc.csv* - dataframe of assembled API results
+	- ***Needed files***:
+		- *BHL_results_ofc.csv* - dataframe of assembled API results
         - *usdacodes_BHL.txt* - file contains all USDA codes, and USDA codes without periods (var. -> var) to account for variations in names
         - *taxa_to_code_fix_novarspp.txt* - contains scientific names where USDA code was found by hand
-        - *USDAgrowthhabitbyUSDAid.csv* - contains USDA codes and their respective growth habits
+       	- *USDAgrowthhabitbyUSDAid.csv* - contains USDA codes and their respective growth habits
         - *BHL_GPI.csv* - contains all invasive species in the GPI database and their corresponding USDA codes for matching
         - *geocodelocation_geocodio.csv* - this file was generated using all unique localities in the dataset input to the geocoding website to receive lat/longs using the website geocod.io
         - *HistUSOrnPlants_Adams_2004.csv* - dataset from Restoring American Gardens (Adams 2004) appended to data from BHL.
