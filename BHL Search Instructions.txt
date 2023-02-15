@@ -1,0 +1,9 @@
+"species.csv" is your input file. It must, at the very least, have a column named "Scientific.Name", which is where the search phrases will be pulled from. Names will be converted to lowercase and compared for uniqueness, throwing out accidental duplicates.
+
+The Python script is "BHL-search05.py" (currently, at least: make sure the version number is the latest). Simply double-clicking it should run on any system with Python 3.x installed, whereupon it will pull search phrases from "species.csv" and grind out queries against the BHL API. Results are cached to the local "api_cache" directory in JSON format. Output is placed in "csv_output" directory in CSV format (predictably).
+
+The project's API key is already in the script, in the foremost variable declarations. If the key ever changes, the script needs to be modified to match.
+
+Most likely configuration error would be not having the module "requests" installed. Look into using the "pip" command to install it.
+
+Python script needs to be in the same folder as 'BHL_search_list.csv' and the folders 'api_cache_BHL' and 'csv_output_BHL'
