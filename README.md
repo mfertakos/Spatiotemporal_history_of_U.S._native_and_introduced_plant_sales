@@ -7,7 +7,7 @@ Code and associated files for database paper: "Documenting the spatiotemporal hi
       - API key - see https://www.biodiversitylibrary.org/docs/api3.html
       - Also see *‘BHL Search Instructions.txt’*
     - ***Created files***: 
-      - ‘Api_cache’ folder containing JSON data for each species. This data turns into a data table in ‘BHL_every_name.R’
+      - ‘Api_cache’ folder containing JSON data for each species. This data turns into a data table in ‘BHL_API_assembledge.R’
 		
 2. **BHL_API_assembledge.R**: Turn API results into a useable dataframe
 	  - ***Needed files***:
