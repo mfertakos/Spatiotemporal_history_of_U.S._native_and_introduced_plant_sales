@@ -1,5 +1,5 @@
 # Spatiotemporal_history_of_U.S._native_and_introduced_plant_sales
-Code and associated files for database paper: "Documenting the spatiotemporal history of native and introduced plant sales in the conterminous U.S."
+Code and associated files for database paper: "Historical plant sales (HPS) database: Documenting the spatiotemporal history of native and introduced plant sales in the conterminous U.S."
 
 1. **BHL-search.py**: Python script using the Biodiversity Heritage Libraries web API to scrape all records for each scientific name inputted. 
     - ***Needed files*** 
