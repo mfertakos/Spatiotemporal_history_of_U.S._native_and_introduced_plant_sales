@@ -26,5 +26,5 @@ Code and associated files for database paper: "Historical plant sales (HPS) data
         - *HistUSOrnPlants_Adams_2004.csv* - dataset from Restoring American Gardens (Adams 2004) appended to data from BHL.
         - *coords_geocodio.csv* - this file was generated using all unique lat/longs in the dataset to receive uniform state and municipality information using the website geocod.io.
     - ***Created files***:
-      - *BHL_RAG_records.csv* - A comma delimited table of the plant species offered for sale by nurseries located in the lower 48 United States
-      - *BHL_RAG_taxa.csv* - A comma delimited table of all unique plant taxa with resolved taxonomy. Columns for invasive status, growth habit, and the number of records per species are included.
+      - *HPS_records.csv* - A comma delimited table of the plant species offered for sale by nurseries located in the lower 48 United States
+      - *HPS_taxa.csv* - A comma delimited table of all unique plant taxa with resolved taxonomy. Columns for invasive status, growth habit, and the number of records per species are included.
