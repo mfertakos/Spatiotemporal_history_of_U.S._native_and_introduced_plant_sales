@@ -1125,7 +1125,42 @@ regulated_codes<-data.frame(USDAcode=unique(regulated$USDA.Code))
 regulated_codes$Regulated<-"Yes"
 BHL_RAG<-left_join(BHL_RAG,regulated_codes,by="USDAcode")
 BHL_RAG$Regulated[is.na(BHL_RAG$Regulated)]<-"No"
-write.csv(BHL_RAG,'BHL_RAG.csv',row.names=FALSE)
+####Add family names####
+genera_fam<-database %>% #get family by genera from 'The Plant List' data used above
+  select(NAME,FAMILY)
+genera_fam$NAME<-str_replace(genera_fam$NAME," X "," × ")
+genera_fam<-distinct(genera_fam)
+colnames(genera_fam)[1]<-"AcceptedName"
+genera_fam<-genera_fam[which(genera_fam$AcceptedName %in% BHL_RAG$AcceptedName),]
+genera_fam<-genera_fam[-which(genera_fam$AcceptedName=='Schizonotus discolor'& genera_fam$FAMILY=='Apocynaceae'),] #fix duplicates
+genera_fam<-genera_fam[-which(genera_fam$AcceptedName=='Onychium japonicum'& genera_fam$FAMILY=='Orchidaceae'),] #fix duplicates
+genera_fam<-genera_fam[-which(genera_fam$AcceptedName=='Onoclea struthiopteris'& genera_fam$FAMILY=='Aspleniaceae'),] #fix duplicates
+genera_fam<-genera_fam[-which(genera_fam$AcceptedName=='Mertensia alpina'& genera_fam$FAMILY=='Boraginaceae'),] #fix duplicates
+genera_fam<-genera_fam[-which(genera_fam$AcceptedName=='Agave asperrima'& genera_fam$FAMILY=='Agavaceae'),] #fix duplicates
+genera_fam<-genera_fam[-which(genera_fam$AcceptedName=='Flacourtia inermis'& genera_fam$FAMILY=='Flacourtiaceae'),] #fix duplicates
+genera_fam<-genera_fam[-which(genera_fam$AcceptedName=='Veronica plantaginea'& genera_fam$FAMILY=='Scrophulariaceae'),] #fix duplicates
+genera_fam<-genera_fam[-which(genera_fam$AcceptedName=='Cuscuta epithymum'& genera_fam$FAMILY=='Cuscutaceae'),] #fix duplicates
+genera_fam<-genera_fam[-which(genera_fam$AcceptedName=='Notholaena sinuata'& genera_fam$FAMILY=='Adiantaceae'),] #fix duplicates
+genera_fam<-genera_fam[-which(genera_fam$AcceptedName=='Hypericum amplexicaule'& genera_fam$FAMILY=='Clusiaceae'),] #fix duplicates
+genera_fam<-genera_fam[-which(genera_fam$AcceptedName=='Hypericum elatum'& genera_fam$FAMILY=='Clusiaceae'),] #fix duplicates
+genera_fam<-genera_fam[-which(genera_fam$AcceptedName=='Haworthiopsis tessellata'& genera_fam$FAMILY=='Aloaceae'),] #fix duplicates
+genera_fam<-genera_fam[-which(genera_fam$AcceptedName=='Haworthiopsis viscosa'& genera_fam$FAMILY=='Aloaceae'),] #fix duplicates
+genera_fam<-genera_fam[-which(genera_fam$AcceptedName=='Haworthiopsis attenuata'& genera_fam$FAMILY=='Aloaceae'),] #fix duplicates
+BHL_RAG<-left_join(BHL_RAG,genera_fam,by="AcceptedName")
+BHL_RAG$FAMILY[which(BHL_RAG$AcceptedName=='Cotoneaster soongoricus')]<-'Rosaceae' #add family for names that did not match exactly
+BHL_RAG$FAMILY[which(BHL_RAG$AcceptedName=='Hibiscus tiliaceus')]<-'Malvaceae' #add family for names that did not match exactly
+BHL_RAG$FAMILY[which(BHL_RAG$AcceptedName=='Aconitum carmichaeli')]<-'Ranunculaceae' #add family for names that did not match exactly
+BHL_RAG$FAMILY[which(BHL_RAG$AcceptedName=='Nymphaea marliacea')]<-'Nymphaeaceae' #add family for names that did not match exactly
+BHL_RAG$FAMILY[which(BHL_RAG$AcceptedName=='Cerasus demissa')]<-'Rosaceae' #add family for names that did not match exactly
+BHL_RAG$FAMILY[which(BHL_RAG$AcceptedName=='Musa paradisiaca')]<-'Musaceae' #add family for names that did not match exactly
+BHL_RAG$FAMILY[which(BHL_RAG$AcceptedName=='Cephalotaxus harringtonia')]<-'Taxaceae' #add family for names that did not match exactly
+colnames(BHL_RAG)[19]<-'Family'
+####Split genus species####
+BHL_RAG<-separate(BHL_RAG,AcceptedName,into=c("AcceptedGenus","AcceptedSpecies"),sep="^\\s*\\S+\\K\\s+")
+BHL_RAG$AcceptedGenus<-trimws(BHL_RAG$AcceptedGenus,"right")#Remove trailing white space
+BHL_RAG$AcceptedSpecies<-trimws(BHL_RAG$AcceptedSpecies,"right")#Remove trailing white space
+
+#write.csv(BHL_RAG,'BHL_RAG.csv',row.names=FALSE)
 ####Create data for Figure 1####
 test<-BHL_RAG %>%
   dplyr::select(Latitude, Longitude, AcceptedName) %>%
@@ -1247,16 +1282,16 @@ BHL_RAG$NurseryName<-str_replace(BHL_RAG$NurseryName,"  "," & ")
 BHL_RAG[BHL_RAG == ""] <- NA                     # Replace blank with NA
 
 DB1<-BHL_RAG %>%
-  dplyr::select(Source,ItemID,SearchedName,AcceptedName,USDAcode,Latitude,Longitude,City,State,PublisherPlace,PublicationDate,NurseryName,Title,ItemUrl)
+  dplyr::select(Source,ItemID,SearchedName,AcceptedGenus,AcceptedSpecies,USDAcode,Latitude,Longitude,City,State,PublisherPlace,PublicationDate,NurseryName,Title,ItemUrl)
 DB1$Latitude<-as.character(DB1$Latitude)
 DB1$Longitude<-as.character(DB1$Longitude)
 DB1$PublicationDate<-as.character(DB1$PublicationDate)
 
 DB2<-BHL_RAG %>%
-  dplyr::select(USDAcode,AcceptedName, USDAstatus, invasive_status, Regulated, Habit)
+  dplyr::select(USDAcode,AcceptedGenus,AcceptedSpecies,Family,USDAstatus, invasive_status, Regulated, Habit)
 
 DB2<- DB2 %>%
-  dplyr::group_by(AcceptedName) %>%
+  dplyr::group_by(AcceptedGenus,AcceptedSpecies) %>%
   dplyr::mutate(n_records = n()) %>%
   distinct()
 DB2$n_records<-as.character(DB2$n_records)
