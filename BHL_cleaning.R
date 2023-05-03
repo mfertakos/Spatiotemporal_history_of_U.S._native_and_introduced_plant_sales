@@ -722,7 +722,7 @@ colnames(growthhabits)[1] <- gsub('^...','',colnames(growthhabits)[1])
 as.data.frame(growthhabits)->growthhabits
 
 BHL_final<-left_join(BHL_final,growthhabits,by="USDAcode")
-####Add USDA Status####
+####Add introduction status####
 #USDAplants
 setwd("C:/Users/mfert/OneDrive - University of Massachusetts/Year1")
 status = read.table('usdacodes_BHL.txt',sep=",",header=TRUE)
@@ -1156,10 +1156,85 @@ BHL_RAG$FAMILY[which(BHL_RAG$AcceptedName=='Cerasus demissa')]<-'Rosaceae' #add 
 BHL_RAG$FAMILY[which(BHL_RAG$AcceptedName=='Musa paradisiaca')]<-'Musaceae' #add family for names that did not match exactly
 BHL_RAG$FAMILY[which(BHL_RAG$AcceptedName=='Cephalotaxus harringtonia')]<-'Taxaceae' #add family for names that did not match exactly
 colnames(BHL_RAG)[19]<-'Family'
-####Split genus species####
-BHL_RAG<-separate(BHL_RAG,AcceptedName,into=c("AcceptedGenus","AcceptedSpecies"),sep="^\\s*\\S+\\K\\s+")
-BHL_RAG$AcceptedGenus<-trimws(BHL_RAG$AcceptedGenus,"right")#Remove trailing white space
-BHL_RAG$AcceptedSpecies<-trimws(BHL_RAG$AcceptedSpecies,"right")#Remove trailing white space
+####Add "invasive_source" column####
+#note: this was added at the request of a reviewer
+#GPI
+GPI<-GPI[-1]
+BHL_RAG<-left_join(BHL_RAG,GPI,by="USDAcode",keep=FALSE)
+#GISD
+#load in species labelled as invasive to double check if they are in GSID
+introducedspecies<-unique(BHL_RAG$AcceptedName[which(BHL_RAG$invasive_status=='invasive')])
+introducedspecies<-as.data.frame(introducedspecies)
+colnames(introducedspecies)<-"Species"
+
+SppList <- introducedspecies
+# to display some of this loaded data frame as an HTML table: 
+kable(SppList[1:5,]) %>% #first 5 rows to test it
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+#create urls
+SppList <- SppList %>% 
+  tidyr::separate(Species, c("genus", "species"), sep = " ", remove = FALSE) %>% 
+  tidyr::unite(c(genus, species), col="genspp", sep = "+", remove = FALSE) %>% 
+  mutate(url=paste0("http://www.iucngisd.org/gisd/speciesname/", genspp)) %>% 
+  select(-genspp)
+SppList[1:5,]$url  # display the first 5 URLs
+
+urls <- SppList[1:1688,]$url
+sppnames <- SppList[1:1688,]$Species
+a_status <- vector(mode = "list", length = length(urls))
+names(a_status) <- sppnames
+
+for (i in 1:length(urls)) {
+  sp.url <- urls[i]
+  sp.node <- '[id=spe-title]'
+  a_status[[i]] <- read_html(sp.url) %>% html_nodes(sp.node) %>% html_text()
+}
+
+a_statuses<-sapply(a_status,function(x) x[1])
+a_statuses<-as.data.frame(a_statuses)
+a_statuses<-a_statuses[!is.na(a_statuses$a_status),]
+a_statuses<-trimws(a_statuses,which="right")
+a_statuses<-as.data.frame(a_statuses)
+colnames(a_statuses)<-"species"
+#append USDA codes to these species
+library(data.table)
+setwd("C:/Users/mfertakos/OneDrive - University of Massachusetts/Year1")
+usdacodes=fread("usdacodes_BHL.txt")
+
+a_statuses$USDAcode<-NA
+
+for(i in 1:length(a_statuses$species)){
+  which(usdacodes$AcceptedName==a_statuses$species[i])->match
+  if(length(match)>=2){
+    a_statuses$USDAcode[i]<-usdacodes$Accepted.Symbol[match[1]]}
+  if(length(match)==0){
+    a_statuses$USDAcode[i]<-'undefined'}
+  if(length(match)==1){
+    a_statuses$USDAcode[i]<-usdacodes$Accepted.Symbol[match]}
+}
+
+a_statuses$USDAcode[which(a_statuses$species=='Cenchrus setaceus')]<-'PESE3'
+
+#now have invasive species from GSID that are in my dataset
+a_statuses$GSID_status<-'invasive'
+a_statuses<-a_statuses %>%
+  distinct(USDAcode,.keep_all=TRUE)
+a_statuses<-a_statuses[-1]
+BHL_RAG<-left_join(BHL_RAG,a_statuses,by="USDAcode")
+
+# create a new variable with default value of NA
+BHL_RAG$invasive_source <- NA
+# set invasive_source to GPI where GPI_status is invasive and GSID_status is missing
+BHL_RAG$invasive_source[BHL_RAG$GPI_status == "invasive" & is.na(BHL_RAG$GSID_status)] <- "GPI"
+# set invasive_source to GSID where GSID_status is invasive and GPI_status is missing
+BHL_RAG$invasive_source[BHL_RAG$GSID_status == "invasive" & is.na(BHL_RAG$GPI_status)] <- "GSID"
+# set invasive_source to Both where both GPI_status and GSID_status are invasive
+BHL_RAG$invasive_source[BHL_RAG$GPI_status == "invasive" & BHL_RAG$GSID_status == "invasive"] <- "Both"
+
+BHL_RAG<-subset(BHL_RAG,select=-c(GPI_status,GSID_status))
+colnames(BHL_RAG)[18]<-"US_regulated"
+
+
 
 #write.csv(BHL_RAG,'BHL_RAG.csv',row.names=FALSE)
 ####Create data for Figure 1####
@@ -1283,18 +1358,19 @@ BHL_RAG$NurseryName<-str_replace(BHL_RAG$NurseryName,"  "," & ")
 BHL_RAG[BHL_RAG == ""] <- NA                     # Replace blank with NA
 
 DB1<-BHL_RAG %>%
-  dplyr::select(Source,ItemID,SearchedName,AcceptedGenus,AcceptedSpecies,USDAcode,Latitude,Longitude,City,State,PublisherPlace,PublicationDate,NurseryName,Title,ItemUrl)
+  dplyr::select(Source,ItemID,SearchedName,AcceptedName,USDAcode,Latitude,Longitude,City,State,PublisherPlace,PublicationDate,NurseryName,Title,ItemUrl)
 DB1$Latitude<-as.character(DB1$Latitude)
 DB1$Longitude<-as.character(DB1$Longitude)
 DB1$PublicationDate<-as.character(DB1$PublicationDate)
 
 DB2<-BHL_RAG %>%
-  dplyr::select(USDAcode,AcceptedGenus,AcceptedSpecies,Family,USDAstatus, invasive_status, Regulated, Habit)
+  dplyr::select(USDAcode,AcceptedName,Family,USDAstatus, invasive_status,invasive_source, US_regulated, Habit)
 
 DB2<- DB2 %>%
-  dplyr::group_by(AcceptedGenus,AcceptedSpecies) %>%
+  dplyr::group_by(AcceptedName) %>%
   dplyr::mutate(n_records = n()) %>%
   distinct()
 DB2$n_records<-as.character(DB2$n_records)
+
 write.csv(DB1,'HPS_records.csv',row.names=FALSE,fileEncoding = "UTF-8")
 write.csv(DB2,'HPS_taxa.csv',row.names=FALSE,fileEncoding = "UTF-8")
